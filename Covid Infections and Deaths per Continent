@@ -1,0 +1,156 @@
+## Exploring Covid Deaths and Covid Vaccination datasets dating 2020-02-13 to 2021-04-30
+
+Select * 
+From first-project-369422.Covid.covid_vacs;
+
+Select *
+From first-project-369422.Covid.covid_deaths;
+
+Select location, date, total_cases, new_cases, total_deaths, population
+From first-project-369422.Covid.covid_deaths
+Order by 1,2;
+
+## Looking at total cases vs. total deaths
+
+Select location, date, total_cases, total_deaths, (total_deaths/total_cases)*100 AS death_percentage
+From first-project-369422.Covid.covid_deaths
+order by 1,2;
+
+## Looking at total cases vs. population
+
+Select location, date, total_cases, population, (total_cases/population)*100 AS death_percentage
+From first-project-369422.Covid.covid_deaths
+order by 1,2;
+
+## What countries have the highest infection count vs population?
+
+Select location,population, max(total_cases) AS total_cases, 
+  max((total_cases/population))*100 AS highest_infection_count
+From first-project-369422.Covid.covid_deaths
+group by population, location
+order by highest_infection_count desc;
+
+## What continents have the highest infection count vs population?
+
+Select location,population, max(total_cases) as total_cases,
+  max((total_cases/population))*100 AS highest_infection_count
+From first-project-369422.Covid.covid_deaths
+where continent is null
+group by population, location
+order by highest_infection_count desc;
+
+## Showing countries with the highest death count 
+
+Select location, max(total_deaths) as total_death_count 
+From first-project-369422.Covid.covid_deaths
+where continent is not null
+group by location
+order by total_death_count desc;
+
+## Showing the total death count per continent
+
+Select location, max(total_deaths) as total_death_count 
+From first-project-369422.Covid.covid_deaths
+where continent is null
+group by location
+order by total_death_count desc;
+
+## Showing the total death count per country
+
+Select location, max(total_deaths) as total_death_count 
+From first-project-369422.Covid.covid_deaths
+where continent is not null
+group by location
+order by total_death_count desc;
+
+## Global infection numbers 
+
+Select date, sum(new_cases) as new_cases, sum(new_deaths) as new_deaths, sum(new_deaths)/sum(new_cases)*100 as death_percentage
+From first-project-369422.Covid.covid_deaths
+where continent is not null
+group by date
+order by 1,2 desc;
+
+## Looking at total population vs vaccinations
+
+SELECT dea.date, dea.location, dea.population, vac.new_vaccinations,
+  sum(vac.new_vaccinations) OVER (partition by dea.location order by dea.location, dea.date) as rolling_vaccination_count
+From first-project-369422.Covid.covid_deaths as dea
+Join first-project-369422.Covid.covid_vacs as vac
+  on dea.date=vac.date
+  and dea.location=vac.location
+Where dea.continent is not null
+order by 2,3;
+
+## Creating a CTE for total population vs vaccinations per continent
+
+WITH PopvsVac AS (
+SELECT dea.date, dea.location, dea.population, vac.new_vaccinations,
+  sum(vac.new_vaccinations) OVER (partition by dea.location order by dea.location, dea.date) as rolling_vaccination_count,
+From first-project-369422.Covid.covid_deaths as dea
+Join first-project-369422.Covid.covid_vacs as vac
+  on dea.date=vac.date
+  and dea.location=vac.location
+Where dea.continent is null
+--order by 2,3
+)
+select *
+from PopvsVac;
+
+## Creating a CTE for total death count per continent
+
+With total_death_count as
+(
+Select location, max(total_deaths) as total_death_count 
+From first-project-369422.Covid.covid_deaths
+where continent is null
+group by location
+order by total_death_count desc
+)
+select * 
+from total_death_count
+
+## Creating a CTE for each continents highest infection count
+
+With highest_infection_count as
+(
+Select location,population, max(total_cases) as total_cases,
+  max((total_cases/population))*100 AS highest_infection_count
+From first-project-369422.Covid.covid_deaths
+where continent is null
+group by population, location
+order by highest_infection_count desc
+)
+select *
+from highest_infection_count
+
+## Temp table for total death count per continent
+
+Create Table first-project-369422.Covid.total_death_count 
+(
+location string,
+total_death_count numeric
+);
+INSERT INTO first-project-369422.Covid.total_death_count 
+Select location, max(total_deaths) as total_death_count 
+From first-project-369422.Covid.covid_deaths
+where continent is null
+group by location
+order by total_death_count desc
+
+## Temp table for continents highest infection count
+
+Create Table first-project-369422.Covid.highest_infection_count
+(
+  location string,
+  population numeric,
+  total_cases numeric,
+  highest_infection_count float64,
+);
+Insert Into first-project-369422.Covid.highest_infection_count
+Select location,population, max(total_cases) as total_cases,
+  max((total_cases/population))*100 AS highest_infection_count
+From first-project-369422.Covid.covid_deaths
+where continent is null
+group by population, location
+order by highest_infection_count desc
