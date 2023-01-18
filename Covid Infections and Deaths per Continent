@@ -138,7 +138,7 @@ where continent is null
 group by location
 order by total_death_count desc
 
-## Temp table for continents highest infection count
+## Temp table for continents highest infection count per continent 
 
 Create Table first-project-369422.Covid.highest_infection_count
 (
@@ -154,3 +154,36 @@ From first-project-369422.Covid.covid_deaths
 where continent is null
 group by population, location
 order by highest_infection_count desc
+
+## Temp table for highest death count per country
+
+drop table if exists first-project-369422.Covid.total_death_count_country;
+Create table first-project-369422.Covid.total_death_count_country 
+(
+  location string,
+  total_death_count numeric,
+
+);
+insert into first-project-369422.Covid.total_death_count_country 
+Select location, max(total_deaths) as total_death_count 
+From first-project-369422.Covid.covid_deaths
+where continent is not null
+group by location
+order by total_death_count;
+
+## Temp Table for highest infection count per country
+
+drop table if exists first-project-369422.Covid.highest_infection_count_country;
+create  table first-project-369422.Covid.highest_infection_count_country
+(
+location string,
+population INT64,
+total_cases INT64,
+highest_infection_count numeric
+);
+insert into first-project-369422.Covid.highest_infection_count_country
+Select location,population, max(total_cases) AS total_cases, 
+  max(cast(total_cases/population as numeric))*100 AS highest_infection_count
+From first-project-369422.Covid.covid_deaths
+group by population, location
+order by highest_infection_count desc;
