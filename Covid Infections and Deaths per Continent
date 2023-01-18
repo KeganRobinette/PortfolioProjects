@@ -187,3 +187,16 @@ Select location,population, max(total_cases) AS total_cases,
 From first-project-369422.Covid.covid_deaths
 group by population, location
 order by highest_infection_count desc;
+
+## Temp table for Global Death Percent
+
+drop table if exists first-project-369422.Covid.death_percent;
+Create table first-project-369422.Covid.death_percent
+(
+  total_cases numeric,
+  total_deaths numeric,
+  death_percent numeric
+);
+insert into first-project-369422.Covid.death_percent
+Select max(cast(total_cases as numeric)) as total_cases, max(cast(total_deaths as numeric)) as total_deaths, max(cast(total_deaths as numeric))/max(cast(total_cases as numeric))*100 as death_percent
+From first-project-369422.Covid.covid_deaths;
