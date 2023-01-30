@@ -1,0 +1,316 @@
+## CLEAN DATA
+## ALTER Q2 COLUMN NAMES TO COORDINATE WITH THE OTHER DATASETS FOR CONSISTENCY
+
+ALTER TABLE `first-project-369422.bikeshare_info.Q2_2019` 
+RENAME COLUMN _01___Rental_Details_Rental_ID TO rental_id, 
+RENAME COLUMN _01___Rental_Details_Local_Start_Time TO start_time, 
+RENAME COLUMN _01___Rental_Details_Local_End_Time TO end_time, 
+RENAME COLUMN _01___Rental_Details_Bike_ID TO bike_id, 
+RENAME COLUMN _01___Rental_Details_Duration_In_Seconds_Uncapped TO duration,
+RENAME COLUMN _03___Rental_Start_Station_ID TO from_station_id, 
+RENAME COLUMN _03___Rental_Start_Station_Name TO from_station_name, 
+RENAME COLUMN _02___Rental_End_Station_ID TO to_station_id, 
+RENAME COLUMN _02___Rental_End_Station_Name TO to_station_Name, 
+RENAME COLUMN Member_Gender TO gender, 
+RENAME COLUMN _05___Member_Details_Member_Birthday_Year TO birthyear;
+
+ALTER TABLE `first-project-369422.bikeshare_info.Q2_2019` 
+RENAME COLUMN rental_id TO trip_id,
+RENAME COLUMN bike_id TO bikeid,
+RENAME COLUMN duration TO tripduration,
+RENAME COLUMN User_Type TO usertype;
+
+DROP TABLE IF EXISTS `first-project-369422.bikeshare_info.bikeshare_H1`;
+CREATE TABLE `first-project-369422.bikeshare_info.bikeshare_H1`
+(
+  trip_id INTEGER,
+  start_time TIMESTAMP,
+  end_time TIMESTAMP,
+  bikeid INTEGER,
+  tripduration float64,
+  from_station_id INTEGER,
+  from_station_name STRING,
+  to_station_id NUMERIC,
+  to_station_name STRING,
+  usertype STRING,
+  gender STRING,
+  birthyear INTEGER
+);
+INSERT INTO `first-project-369422.bikeshare_info.bikeshare_H1`
+SELECT * FROM `first-project-369422.bikeshare_info.Q1_2019`
+UNION ALL 
+SELECT * FROM `first-project-369422.bikeshare_info.Q2_2019`;
+
+
+CREATE TABLE `first-project-369422.bikeshare_info.bikeshare_H2`
+(
+  trip_id INTEGER,
+  start_time TIMESTAMP,
+  end_time TIMESTAMP,
+  bikeid INTEGER,
+  tripduration float64,
+  from_station_id INTEGER,
+  from_station_name STRING,
+  to_station_id NUMERIC,
+  to_station_name STRING,
+  usertype STRING,
+  gender STRING,
+  birthyear INTEGER
+);
+INSERT INTO `first-project-369422.bikeshare_info.bikeshare_H2`
+SELECT * FROM `first-project-369422.bikeshare_info.Q3_2019`
+UNION ALL 
+SELECT * FROM `first-project-369422.bikeshare_info.Q4_2019`;
+
+
+CREATE TABLE `first-project-369422.bikeshare_info.bikeshare_2019`
+(
+  trip_id INTEGER,
+  start_time TIMESTAMP,
+  end_time TIMESTAMP,
+  bikeid INTEGER,
+  tripduration float64,
+  from_station_id INTEGER,
+  from_station_name STRING,
+  to_station_id NUMERIC,
+  to_station_name STRING,
+  usertype STRING,
+  gender STRING,
+  birthyear INTEGER
+);
+INSERT INTO `first-project-369422.bikeshare_info.bikeshare_2019`
+SELECT * FROM `first-project-369422.bikeshare_info.bikeshare_H1`
+UNION ALL 
+SELECT * FROM `first-project-369422.bikeshare_info.bikeshare_H2`;
+
+## DO SUBSCRIBERS OR CUSTOMERS BIKE THE MOST AND BY HOW MUCH?
+
+SELECT usertype, COUNT(trip_id) AS number_of_trips
+FROM first-project-369422.bikeshare_info.bikeshare_2019
+GROUP BY usertype;
+
+SELECT usertype, AVG(tripduration)/60 AS trip_duration_minutes
+FROM `first-project-369422.bikeshare_info.bikeshare_2019`
+GROUP BY usertype;
+
+## WHAT DAYS DO USERS LIKE TO RIDE?
+## Note: 1=Sunday, 2=Monday, 3=Tuesday, 4=Wednesday, 5=Thursday, 6=Friday, 7=Saturday.
+
+SELECT usertype, EXTRACT(DAYOFWEEK FROM start_time) AS DayOfWeek, 
+FROM `first-project-369422.bikeshare_info.bikeshare_2019`
+GROUP BY usertype, start_time
+ORDER BY DayOfWeek;
+
+## ARE THERE ANY TRENDS IN GENDER FOR EACH USERTYPE?
+## GENDER COLUMN DOES NOT ACCOUNT FOR NONBINARY OR GENDER-NONCONFORMING FOLKS THEREFORE MAKING IT NON REPRESENTATIVE OF THE POPULATION. 
+
+SELECT usertype, gender, count(*) as count
+FROM `first-project-369422.bikeshare_info.Q1_2019`
+WHERE gender IS NOT NULL 
+GROUP BY gender, usertype;
+
+## NOT ENOUGH DATA TO ACCURATELY ANALYZE GENDER. 
+## WHAT IS THE BIRTHYEAR FOR THE OLDEST AND YOUNGEST BIKE USER PER USERTYPE?
+
+SELECT usertype, MIN(birthyear) AS oldest_biker, MAX(birthyear) AS youngest_biker
+FROM`first-project-369422.bikeshare_info.bikeshare_2019`
+WHERE birthyear IS NOT NULL
+GROUP BY usertype;
+
+## BIRTH YEAR SHOWS INFORMATION FOR ALL CUSTOMERS AND DOES NOT ACCOUNT FOR THOSE WHOM MAY HAVE PASSED AWAY. UNABLE TO ACCURATELY USE THIS INFORMATION. 
+## WHERE DO EACH USERTYPE LIKE TO START THEIR TRIPS?
+
+SELECT usertype, from_station_name, COUNT(from_station_name) AS count
+FROM `first-project-369422.bikeshare_info.bikeshare_2019`
+WHERE usertype = 'Subscriber'
+GROUP BY usertype,  from_station_name
+ORDER BY count DESC;
+
+SELECT usertype, from_station_name, COUNT(from_station_name) AS count
+FROM `first-project-369422.bikeshare_info.bikeshare_2019`
+WHERE usertype = 'Customer'
+GROUP BY usertype,  from_station_name
+ORDER BY count DESC;
+
+SELECT usertype, from_station_name, COUNT(from_station_name) AS count
+FROM `first-project-369422.bikeshare_info.bikeshare_2019`
+WHERE usertype = 'Subscriber'
+GROUP BY usertype,  from_station_name
+ORDER BY count DESC
+LIMIT 10;
+
+SELECT usertype, from_station_name, COUNT(from_station_name) AS count
+FROM `first-project-369422.bikeshare_info.bikeshare_2019`
+WHERE usertype = 'Customer'
+GROUP BY usertype,  from_station_name
+ORDER BY count DESC
+LIMIT 5;
+
+SELECT usertype, to_station_name, COUNT(to_station_name) AS count
+FROM `first-project-369422.bikeshare_info.bikeshare_2019`
+WHERE usertype = 'Subscriber'
+GROUP BY usertype, to_station_name
+ORDER BY count DESC;
+
+SELECT usertype, to_station_name, COUNT(to_station_name) AS count
+FROM `first-project-369422.bikeshare_info.bikeshare_2019`
+WHERE usertype = 'Customer'
+GROUP BY usertype, to_station_name
+ORDER BY count DESC;
+
+SELECT usertype, start_time, COUNT(start_time) AS count
+FROM `first-project-369422.bikeshare_info.bikeshare_2019`
+WHERE usertype = 'Customer'
+GROUP BY usertype, start_time
+ORDER BY count DESC
+LIMIT 15;
+
+
+## LETS MAKE TABLES TO TURN INTO VIZ
+
+
+CREATE TABLE `first-project-369422.bikeshare_info.number_of_trips`
+(
+  usertype STRING,
+  trip_id INTEGER
+);
+INSERT INTO `first-project-369422.bikeshare_info.number_of_trips`
+SELECT usertype, COUNT(trip_id) AS number_of_trips
+FROM first-project-369422.bikeshare_info.bikeshare_2019
+GROUP BY usertype;
+
+DROP TABLE IF EXISTS `first-project-369422.bikeshare_info.trip_duration_minutes`;
+CREATE TABLE `first-project-369422.bikeshare_info.trip_duration_minutes`
+(
+  usertype STRING, 
+  tripduration FLOAT64
+);
+INSERT INTO `first-project-369422.bikeshare_info.trip_duration_minutes`
+SELECT usertype, AVG(tripduration)/60 AS trip_duration_minutes
+FROM `first-project-369422.bikeshare_info.bikeshare_2019`
+GROUP BY usertype;
+
+
+CREATE TABLE `first-project-369422.bikeshare_info.sub_start_station`
+(
+  usertype STRING,
+  from_station_name STRING,
+  count NUMERIC
+);
+INSERT INTO `first-project-369422.bikeshare_info.sub_start_station`
+SELECT usertype, from_station_name, COUNT(from_station_name) AS count
+FROM `first-project-369422.bikeshare_info.bikeshare_2019`
+WHERE usertype = 'Subscriber'
+GROUP BY usertype,  from_station_name
+ORDER BY count DESC;
+
+
+DROP TABLE IF EXISTS `first-project-369422.bikeshare_info.weekdays`;
+CREATE TABLE `first-project-369422.bikeshare_info.weekdays`
+(
+  usertype STRING,
+  day_of_week INT64
+);
+INSERT INTO `first-project-369422.bikeshare_info.weekdays`
+SELECT usertype, EXTRACT(DAYOFWEEK FROM start_time) AS DayOfWeek, 
+FROM `first-project-369422.bikeshare_info.bikeshare_2019`
+GROUP BY usertype, start_time
+ORDER BY DayOfWeek;
+
+
+DROP TABLE IF EXISTS `first-project-369422.bikeshare_info.weekdays_sub`;
+CREATE TABLE `first-project-369422.bikeshare_info.weekdays_sub`
+(
+  usertype STRING,
+  day_of_week INT64
+);
+INSERT INTO `first-project-369422.bikeshare_info.weekdays_sub`
+SELECT usertype, EXTRACT(DAYOFWEEK FROM start_time) AS DayOfWeek, 
+FROM `first-project-369422.bikeshare_info.bikeshare_2019`
+WHERE usertype = 'Subscriber'
+GROUP BY usertype, start_time
+ORDER BY DayOfWeek;
+
+## UPDATE THE TABLE SO EVERYONE UNDERSTANDS THE WEEK DAYS
+
+
+DROP TABLE IF EXISTS `first-project-369422.bikeshare_info.weekdays_sub`;
+CREATE TABLE `first-project-369422.bikeshare_info.weekdays_sub`
+(
+  usertype STRING,
+  Day_of_Week INT64,
+  dow STRING
+);
+INSERT INTO `first-project-369422.bikeshare_info.weekdays_sub`
+ SELECT bike.*,
+  CASE WHEN dow = 1 THEN 'Sunday'
+  WHEN bike.dow = 2 THEN 'Monday'
+  WHEN bike.dow = 3 THEN 'Tuesday'
+  WHEN bike.dow = 4 THEN 'Wednesday'
+  WHEN bike.dow = 5 THEN 'Thursday'
+  WHEN bike.dow = 6 THEN 'Friday'
+  WHEN bike.dow = 7 THEN "Saturday" END as Day_of_Week
+  FROM
+(SELECT usertype, EXTRACT(DAYOFWEEK FROM start_time) AS dow
+FROM `first-project-369422.bikeshare_info.bikeshare_2019`
+WHERE usertype = 'Subscriber'
+GROUP BY usertype, start_time
+ORDER BY dow) AS bike;
+
+
+DROP TABLE IF EXISTS `first-project-369422.bikeshare_info.weekdays_cus`;
+CREATE TABLE `first-project-369422.bikeshare_info.weekdays_cus`
+(
+  usertype STRING,
+  Day_of_Week INT64,
+  dow STRING
+);
+INSERT INTO `first-project-369422.bikeshare_info.weekdays_cus`
+ SELECT bike.*,
+  CASE WHEN dow = 1 THEN 'Sunday'
+  WHEN bike.dow = 2 THEN 'Monday'
+  WHEN bike.dow = 3 THEN 'Tuesday'
+  WHEN bike.dow = 4 THEN 'Wednesday'
+  WHEN bike.dow = 5 THEN 'Thursday'
+  WHEN bike.dow = 6 THEN 'Friday'
+  WHEN bike.dow = 7 THEN "Saturday" END as Day_of_Week
+  FROM
+(SELECT usertype, EXTRACT(DAYOFWEEK FROM start_time) AS dow
+FROM `first-project-369422.bikeshare_info.bikeshare_2019`
+WHERE usertype = 'Customer'
+GROUP BY usertype, start_time
+ORDER BY dow) AS bike;
+
+
+## CHECKING FOR TRENDS AMONG THE FROM STATION NAME COLUMN. 
+
+DROP TABLE IF EXISTS `first-project-369422.bikeshare_info.start_station_sub`;
+CREATE TABLE `first-project-369422.bikeshare_info.start_station_sub`
+(
+  usertype STRING,
+  start_station_name STRING,
+  count INT64
+);
+INSERT INTO `first-project-369422.bikeshare_info.start_station_sub`
+SELECT usertype, from_station_name, COUNT(from_station_name) AS count
+FROM `first-project-369422.bikeshare_info.bikeshare_2019`
+WHERE usertype = 'Subscriber'
+GROUP BY usertype,  from_station_name
+ORDER BY count DESC
+LIMIT 10;
+
+
+
+CREATE TABLE `first-project-369422.bikeshare_info.start_station_cus`
+(
+  usertype STRING,
+  from_station_name STRING,
+  count NUMERIC
+);
+INSERT INTO `first-project-369422.bikeshare_info.start_station_cus`
+SELECT usertype, from_station_name, COUNT(from_station_name) AS count
+FROM `first-project-369422.bikeshare_info.bikeshare_2019`
+WHERE usertype = 'Customer'
+GROUP BY usertype,  from_station_name
+ORDER BY count DESC
+LIMIT 10;
